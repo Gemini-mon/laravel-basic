@@ -12,13 +12,37 @@ class ProductController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    // public function index()
+    // カテゴリーを絞り込む
+    public function index(Request $request)
     {
-        //
-        $products = Product::all();
+        // 商品検索処理
+        $keyword = $request->keyword;
+
+        // ページネーションで表示
+        // カテゴリーを絞り込む
+        if ($request->category !== null) {
+            $products = Product::where('category_id', $request->category)->sortable()->paginate(15);
+            $total_count = Product::where('category_id', $request->category)->count();
+            $category = Category::find($request->category);
+        } elseif ($keyword !== null) {
+            $products = Product::where('name', 'like', "%{$keyword}%")->sortable()->paginate(15);
+            $total_count = $products->total();
+            $category = null;
+        } else {
+            $products = Product::sortable()->paginate(15);
+            $total_count = "";
+            $category = null;
+        }
+        $categories = Category::all();
+         $major_category_names = Category::pluck('major_category_name')->unique();
  
-        return view('products.index', compact('products'));
+        // return view('products.index', compact('products'));
+        // return view('products.index', compact('products', 'categories', 'major_category_names'));
+        // カテゴリーを絞り込む
+        return view('products.index', compact('products', 'category', 'categories', 'major_category_names', 'total_count', 'keyword'));
     }
+  
 
     /**
      * Show the form for creating a new resource.
@@ -35,6 +59,7 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
+        
         $product = new Product();
         $product->name = $request->input('name');
         $product->description = $request->input('description');
@@ -50,7 +75,11 @@ class ProductController extends Controller
      */
     public function show(Product $product)
     {
-        return view('products.show', compact('product'));
+        // return view('products.show', compact('product'));
+        // 商品についてのすべてのレビュー取得して保存
+        $reviews = $product->reviews()->get();
+  
+        return view('products.show', compact('product', 'reviews'));
     }
 
     /**
